@@ -1,0 +1,146 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Http\Controllers\Controller;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Arr;
+
+
+class SessionController extends Controller
+{
+    function index()
+    {
+        return view('login');
+    }
+
+    function login(Request $request)
+    {
+        Session::flash('username', $request->input('username'));
+
+        $request->validate([
+            'username' => 'required',
+            'password' => 'required'
+        ], [
+            'username.required' => 'Username wajib diisi',
+            'password.required' => 'Password wajib diisi'
+        ]);
+
+        $infologin = [
+            'username' => $request->username,
+            'password' => $request->password
+        ];
+
+        if (Auth::attempt($infologin)) {
+            if (Auth::user()->role == 1){
+                return redirect('/admin');
+            } else {
+                return redirect('/welcome');
+            };
+        }
+         else {
+            return redirect('auth')->withErrors('Username dan password yang dimasukkan tidak sesuai');
+        }
+    }
+
+
+    function logout()
+    {
+        Auth::logout();
+        return redirect('auth')->with('success', 'Berhasil logout');
+    }
+
+
+
+    function register()
+    {
+
+        // $response = Http::get('https://api-sekolah-indonesia.vercel.app/sekolah?page=1&perPage=1000')->object();;
+        // $sekolah = $response->dataSekolah[0]->sekolah;
+        // var_dump($sekolah);die;
+        // $sekolah = $response->dataSekolah;
+        // $sekolah = Arr::map($sekolah, function ($value, $key) {
+        //     // return [$value->sekolah => $value->sekolah];
+        //     return $value->sekolah;
+        // });
+
+        return view('register',[
+            // 'sekolah' => $sekolah
+        ]);
+    }
+
+
+
+    function create(Request $request)
+    {
+        Session::flash('name', $request->input('name'));
+        Session::flash('username', $request->input('username'));
+        Session::flash('sekolah', $request->input('sekolah'));
+        Session::flash('email', $request->input('email'));
+        Session::flash('nomor_telepon', $request->input('nomor_telepon'));
+        Session::flash('urlbukti', $request->input('urlbukti'));
+
+        $request->validate([
+            'name' => 'required',
+            'sekolah' => 'required',
+            'username' => 'required|unique:users',
+            'password' => 'required|min:8|confirmed',
+            'nomor_telepon' => 'required|numeric|min:10',
+            'email' => 'required|unique:users',
+            'urlbukti' => 'required'
+
+        ], [
+            'name.required' => 'Nama wajib diisi',
+            'sekolah.required' => 'Instansi wajib diisi',
+            'username.required' => 'Username wajib diisi',
+            'username.unique' => 'Username sudah digunakan, silakan masukkan username yang lain',
+            'password.required' => 'Password wajib diisi',
+            'password.min' => 'Minumum password 8 karakter',
+            'password.confirmed' => 'Konfirmasi password berbeda dengan password',
+            'nomor_telepon.required' => 'Nomor telepon wajib diisi',
+            'nomor_telepon.numeric' => 'Nomor telepon tidak valid',
+            'nomor_telepon.min' => 'Nomor telepon minimal memiliki 10 angka',
+            'email.unique' => 'Email yang anda pakai sudah di gunakan',
+            'email.required' => 'Email wajib di isi',
+            'urlbukti.required' => 'Wajib menggunakan link gdrive'
+
+        ]);
+
+        $data = [
+            'name' => $request->name,
+            'sekolah' => $request->sekolah,
+            'username' => $request->username,
+            'password' => Hash::make($request->password),
+            'nomor_telepon' => $request->nomor_telepon,
+            'email' => $request->email,
+            'role' => 0,
+            'urlbukti' => $request->urlbukti,
+        ];
+        User::create($data);
+
+        $infologin = [
+            'username' => $request->username,
+            'password' => $request->password
+        ];
+
+        if (Auth::attempt($infologin)) {
+            return redirect('/user');
+        }
+         else {
+            return redirect('auth')->withErrors('Username dan password yang dimasukkan tidak sesuai');
+        }
+
+        // return redirect('auth')->with("success", "TELAH BERHASIL REGISTER TUNGGU UNTUK DI VERIFIKASI ADMIN");
+
+
+    }
+
+
+
+
+}
